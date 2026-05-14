@@ -27,7 +27,7 @@ coral source add --file sources/community/crates_io/manifest.yaml
 ## Auth
 
 None. The crates.io API is fully public for read operations. Coral
-automatically sets a `User-Agent: coral` header on every request, which
+automatically sets a descriptive `User-Agent` header on every request, which
 satisfies the crates.io crawler policy.
 
 ## Rate limiting
@@ -36,6 +36,22 @@ Crates.io enforces a rate limit of **1 request per second** for API
 consumers. Coral handles `429 Too Many Requests` responses with
 automatic retry, but paginated queries across many pages may be slower
 than usual because of this constraint.
+
+Paginated tables use conservative default fetch limits when a query omits
+`LIMIT`. Add an explicit `LIMIT` when you need a larger result set, and keep
+large scans narrow with filters such as `q`, `category`, `keyword`, or
+`crate_name`.
+
+## Pagination and filters
+
+The `crates`, `crate_versions`, `categories`, and `keywords` tables use
+crates.io page pagination with `page` and `per_page` request parameters.
+
+The `crates_io.crates` table supports `include_yanked = 'yes'` when you need
+to include yanked crates in search/list results. The `categories` and
+`keywords` columns are exposed as JSON when crates.io includes them in the
+list response; for many list/search responses crates.io returns them as
+`null`.
 
 ## Example queries
 
@@ -63,6 +79,15 @@ LIMIT 20;
 SELECT name, description, downloads
 FROM crates_io.crates
 WHERE keyword = 'async'
+LIMIT 20;
+```
+
+### Include yanked crates
+
+```sql
+SELECT name, downloads, yanked
+FROM crates_io.crates
+WHERE q = 'serde' AND include_yanked = 'yes'
 LIMIT 20;
 ```
 

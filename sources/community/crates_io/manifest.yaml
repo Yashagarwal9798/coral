@@ -10,6 +10,9 @@ base_url: https://crates.io/api/v1
 
 test_queries:
   - SELECT name, downloads FROM crates_io.crates WHERE q = 'serde' LIMIT 1
+  - SELECT num, downloads FROM crates_io.crate_versions WHERE crate_name = 'serde' LIMIT 1
+  - SELECT crate_id, req FROM crates_io.crate_dependencies WHERE crate_name = 'tokio' AND version = '1.38.0' LIMIT 1
+  - SELECT login, kind FROM crates_io.crate_owners WHERE crate_name = 'serde' LIMIT 1
   - SELECT id, category, crates_cnt FROM crates_io.categories LIMIT 1
 
 tables:
@@ -23,13 +26,16 @@ tables:
       `keyword` for a keyword (e.g. `http`), and `sort` for ordering
       (`alphabetical`, `relevance`, `downloads`, `recent-downloads`,
       `recent-updates`, `new`). When `q` is set, the default sort is
-      `relevance`; otherwise `alphabetical`.
+      `relevance`; otherwise `alphabetical`. Pass `include_yanked = 'yes'`
+      to include yanked crates in search results.
+    fetch_limit_default: 100
     filters:
       - name: q
       - name: category
       - name: keyword
       - name: sort
       - name: letter
+      - name: include_yanked
     request:
       method: GET
       path: /crates
@@ -49,6 +55,9 @@ tables:
         - name: letter
           from: filter
           key: letter
+        - name: include_yanked
+          from: filter
+          key: include_yanked
     response:
       rows_path:
         - crates
@@ -56,6 +65,7 @@ tables:
       mode: page
       page_param: page
       page_start: 1
+      max_pages: 100
       page_size:
         default: 50
         max: 100
@@ -139,6 +149,14 @@ tables:
         type: Boolean
         nullable: false
         description: Whether the crate name was an exact match for the query.
+      - name: categories
+        type: Json
+        nullable: true
+        description: Categories attached to the crate when included by the API.
+      - name: keywords
+        type: Json
+        nullable: true
+        description: Keywords attached to the crate when included by the API.
       - name: links
         type: Json
         nullable: true
@@ -151,6 +169,7 @@ tables:
     description: |
       List all versions of a specific crate. Requires `crate_name` filter.
       Use `sort` to order by `date` or `semver` (default: `semver`).
+    fetch_limit_default: 100
     filters:
       - name: crate_name
         required: true
@@ -169,6 +188,7 @@ tables:
       mode: page
       page_param: page
       page_start: 1
+      max_pages: 100
       page_size:
         default: 50
         max: 100
@@ -390,6 +410,7 @@ tables:
     description: |
       List all crate categories on crates.io. Use `sort` to order by
       `alpha` (default) or `crates` (by crate count).
+    fetch_limit_default: 100
     filters:
       - name: sort
     request:
@@ -406,6 +427,7 @@ tables:
       mode: page
       page_param: page
       page_start: 1
+      max_pages: 20
       page_size:
         default: 50
         max: 100
@@ -450,6 +472,7 @@ tables:
     description: |
       List all crate keywords on crates.io. Use `sort` to order by
       `alpha` (default) or `crates` (by crate count).
+    fetch_limit_default: 100
     filters:
       - name: sort
     request:
@@ -466,6 +489,7 @@ tables:
       mode: page
       page_param: page
       page_start: 1
+      max_pages: 100
       page_size:
         default: 50
         max: 100
