@@ -13,8 +13,8 @@ Create or copy a Todoist token:
 
 Then install the source:
 
-```powershell
-$env:TODOIST_API_TOKEN = "<token>"
+```sh
+export TODOIST_API_TOKEN="<token>"
 cargo run -p coral-cli -- source add --file sources/community/todoist/manifest.yaml
 ```
 
@@ -88,21 +88,21 @@ ORDER BY name;
 
 Lint the manifest:
 
-```powershell
+```sh
 cargo run -p coral-cli -- source lint sources/community/todoist/manifest.yaml
 ```
 
 Install and test with a real token:
 
-```powershell
-$env:TODOIST_API_TOKEN = "<token>"
+```sh
+export TODOIST_API_TOKEN="<token>"
 cargo run -p coral-cli -- source add --file sources/community/todoist/manifest.yaml
 cargo run -p coral-cli -- source test todoist
 ```
 
 Inspect the registered source:
 
-```powershell
+```sh
 cargo run -p coral-cli -- sql "SELECT table_name, description, required_filters FROM coral.tables WHERE schema_name = 'todoist'"
 cargo run -p coral-cli -- sql "SELECT table_name, column_name, is_required_filter FROM coral.columns WHERE schema_name = 'todoist' ORDER BY table_name, ordinal_position"
 ```
