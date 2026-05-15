@@ -1,0 +1,1105 @@
+name: x
+version: 0.1.0
+dsl_version: 3
+backend: http
+description: >-
+  Query posts, user profiles, recent search results, timelines, mentions,
+  followers, and following lists from X/Twitter. Inspect public social activity
+  and account-related metadata for monitoring, support, and research workflows.
+base_url: https://api.x.com
+inputs:
+  X_BEARER_TOKEN:
+    kind: secret
+    hint: >-
+      X API bearer token from an approved Developer Platform app. For the v1
+      public lookup/search/timeline endpoints, use an app bearer token or OAuth
+      token with tweet.read and users.read access. Access is subject to your X
+      API tier.
+
+auth:
+  type: HeaderAuth
+  headers:
+    - name: Authorization
+      from: template
+      template: Bearer {{input.X_BEARER_TOKEN}}
+
+test_queries:
+  - SELECT id, name, username FROM x.users_by_username WHERE username = 'XDevelopers' LIMIT 1
+  - SELECT id, name, username FROM x.users_by_id WHERE id = '2244994945' LIMIT 1
+
+tables:
+  - name: users_by_id
+    description: >-
+      Fetch a single X/Twitter user profile by user ID. Use this after
+      discovering a user ID from search, timelines, followers, or username
+      lookup.
+    filters:
+      - name: id
+        required: true
+    request:
+      method: GET
+      path: /2/users/{{filter.id}}
+      query:
+        - name: user.fields
+          from: literal
+          value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: none
+    columns:
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X user ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: name
+        type: Utf8
+        nullable: true
+        description: Display name.
+        expr:
+          kind: path
+          path: [name]
+      - name: username
+        type: Utf8
+        nullable: true
+        description: X username without the at-sign.
+        expr:
+          kind: path
+          path: [username]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: User creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: description
+        type: Utf8
+        nullable: true
+        description: User profile description.
+        expr:
+          kind: path
+          path: [description]
+      - name: location
+        type: Utf8
+        nullable: true
+        description: User-provided profile location.
+        expr:
+          kind: path
+          path: [location]
+      - name: url
+        type: Utf8
+        nullable: true
+        description: User-provided profile URL.
+        expr:
+          kind: path
+          path: [url]
+      - name: protected
+        type: Boolean
+        nullable: true
+        description: Whether the user's posts are protected.
+        expr:
+          kind: path
+          path: [protected]
+      - name: verified
+        type: Boolean
+        nullable: true
+        description: Whether the user is verified.
+        expr:
+          kind: path
+          path: [verified]
+      - name: verified_type
+        type: Utf8
+        nullable: true
+        description: Verification type, when returned by X.
+        expr:
+          kind: path
+          path: [verified_type]
+      - name: profile_image_url
+        type: Utf8
+        nullable: true
+        description: Profile image URL.
+        expr:
+          kind: path
+          path: [profile_image_url]
+      - name: pinned_tweet_id
+        type: Utf8
+        nullable: true
+        description: Pinned post ID, if configured.
+        expr:
+          kind: path
+          path: [pinned_tweet_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public user metrics such as followers and following counts.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed profile entities such as URL metadata.
+        expr:
+          kind: path
+          path: [entities]
+      - name: affiliation
+        type: Json
+        nullable: true
+        description: Affiliation metadata, when returned by X.
+        expr:
+          kind: path
+          path: [affiliation]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+
+  - name: users_by_username
+    description: >-
+      Fetch a single X/Twitter user profile by username. This is the main
+      discovery table for converting handles into stable user IDs.
+    filters:
+      - name: username
+        required: true
+    request:
+      method: GET
+      path: /2/users/by/username/{{filter.username}}
+      query:
+        - name: user.fields
+          from: literal
+          value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: none
+    columns:
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X user ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: name
+        type: Utf8
+        nullable: true
+        description: Display name.
+        expr:
+          kind: path
+          path: [name]
+      - name: username
+        type: Utf8
+        nullable: false
+        description: X username without the at-sign.
+        expr:
+          kind: path
+          path: [username]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: User creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: description
+        type: Utf8
+        nullable: true
+        description: User profile description.
+        expr:
+          kind: path
+          path: [description]
+      - name: location
+        type: Utf8
+        nullable: true
+        description: User-provided profile location.
+        expr:
+          kind: path
+          path: [location]
+      - name: url
+        type: Utf8
+        nullable: true
+        description: User-provided profile URL.
+        expr:
+          kind: path
+          path: [url]
+      - name: protected
+        type: Boolean
+        nullable: true
+        description: Whether the user's posts are protected.
+        expr:
+          kind: path
+          path: [protected]
+      - name: verified
+        type: Boolean
+        nullable: true
+        description: Whether the user is verified.
+        expr:
+          kind: path
+          path: [verified]
+      - name: verified_type
+        type: Utf8
+        nullable: true
+        description: Verification type, when returned by X.
+        expr:
+          kind: path
+          path: [verified_type]
+      - name: profile_image_url
+        type: Utf8
+        nullable: true
+        description: Profile image URL.
+        expr:
+          kind: path
+          path: [profile_image_url]
+      - name: pinned_tweet_id
+        type: Utf8
+        nullable: true
+        description: Pinned post ID, if configured.
+        expr:
+          kind: path
+          path: [pinned_tweet_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public user metrics such as followers and following counts.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed profile entities such as URL metadata.
+        expr:
+          kind: path
+          path: [entities]
+      - name: affiliation
+        type: Json
+        nullable: true
+        description: Affiliation metadata, when returned by X.
+        expr:
+          kind: path
+          path: [affiliation]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+
+  - name: recent_search
+    description: >-
+      Search recent public X/Twitter posts matching an X API query. Requires a
+      query filter and is useful for brand, incident, launch, and topic
+      monitoring.
+    fetch_limit_default: 100
+    filters:
+      - name: query
+        required: true
+      - name: start_time
+      - name: end_time
+      - name: since_id
+      - name: until_id
+      - name: sort_order
+    request:
+      method: GET
+      path: /2/tweets/search/recent
+      query:
+        - name: query
+          from: filter
+          key: query
+        - name: start_time
+          from: filter
+          key: start_time
+        - name: end_time
+          from: filter
+          key: end_time
+        - name: since_id
+          from: filter
+          key: since_id
+        - name: until_id
+          from: filter
+          key: until_id
+        - name: sort_order
+          from: filter
+          key: sort_order
+        - name: tweet.fields
+          from: literal
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 100
+        query_param: max_results
+    columns:
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X post ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: text
+        type: Utf8
+        nullable: true
+        description: Post text.
+        expr:
+          kind: path
+          path: [text]
+      - name: author_id
+        type: Utf8
+        nullable: true
+        description: Author user ID.
+        expr:
+          kind: path
+          path: [author_id]
+      - name: conversation_id
+        type: Utf8
+        nullable: true
+        description: Conversation root post ID.
+        expr:
+          kind: path
+          path: [conversation_id]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: Post creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: lang
+        type: Utf8
+        nullable: true
+        description: Detected post language.
+        expr:
+          kind: path
+          path: [lang]
+      - name: possibly_sensitive
+        type: Boolean
+        nullable: true
+        description: Whether X marked the post as possibly sensitive.
+        expr:
+          kind: path
+          path: [possibly_sensitive]
+      - name: reply_settings
+        type: Utf8
+        nullable: true
+        description: Reply settings for the post.
+        expr:
+          kind: path
+          path: [reply_settings]
+      - name: source
+        type: Utf8
+        nullable: true
+        description: Source client, when returned by X.
+        expr:
+          kind: path
+          path: [source]
+      - name: in_reply_to_user_id
+        type: Utf8
+        nullable: true
+        description: User ID this post replies to, if any.
+        expr:
+          kind: path
+          path: [in_reply_to_user_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public engagement metrics.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: referenced_tweets
+        type: Json
+        nullable: true
+        description: Referenced posts such as replies, reposts, or quotes.
+        expr:
+          kind: path
+          path: [referenced_tweets]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed entities such as mentions, hashtags, and URLs.
+        expr:
+          kind: path
+          path: [entities]
+      - name: attachments
+        type: Json
+        nullable: true
+        description: Attachment identifiers such as media or polls.
+        expr:
+          kind: path
+          path: [attachments]
+      - name: context_annotations
+        type: Json
+        nullable: true
+        description: X context annotations.
+        expr:
+          kind: path
+          path: [context_annotations]
+      - name: edit_history_tweet_ids
+        type: Json
+        nullable: true
+        description: Post edit history IDs.
+        expr:
+          kind: path
+          path: [edit_history_tweet_ids]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+      - name: query
+        type: Utf8
+        nullable: false
+        description: Echoes the search query filter.
+        expr:
+          kind: from_filter
+          key: query
+
+  - name: user_posts
+    description: >-
+      Posts from a single X/Twitter user timeline. Requires user_id; discover
+      user IDs with users_by_username or users_by_id.
+    fetch_limit_default: 100
+    filters:
+      - name: user_id
+        required: true
+      - name: start_time
+      - name: end_time
+      - name: since_id
+      - name: until_id
+      - name: exclude
+    request:
+      method: GET
+      path: /2/users/{{filter.user_id}}/tweets
+      query:
+        - name: start_time
+          from: filter
+          key: start_time
+        - name: end_time
+          from: filter
+          key: end_time
+        - name: since_id
+          from: filter
+          key: since_id
+        - name: until_id
+          from: filter
+          key: until_id
+        - name: exclude
+          from: filter
+          key: exclude
+        - name: tweet.fields
+          from: literal
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 100
+        query_param: max_results
+    columns:
+      - name: user_id
+        type: Utf8
+        nullable: false
+        description: User ID whose timeline was queried.
+        expr:
+          kind: from_filter
+          key: user_id
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X post ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: text
+        type: Utf8
+        nullable: true
+        description: Post text.
+        expr:
+          kind: path
+          path: [text]
+      - name: author_id
+        type: Utf8
+        nullable: true
+        description: Author user ID.
+        expr:
+          kind: path
+          path: [author_id]
+      - name: conversation_id
+        type: Utf8
+        nullable: true
+        description: Conversation root post ID.
+        expr:
+          kind: path
+          path: [conversation_id]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: Post creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: lang
+        type: Utf8
+        nullable: true
+        description: Detected post language.
+        expr:
+          kind: path
+          path: [lang]
+      - name: possibly_sensitive
+        type: Boolean
+        nullable: true
+        description: Whether X marked the post as possibly sensitive.
+        expr:
+          kind: path
+          path: [possibly_sensitive]
+      - name: reply_settings
+        type: Utf8
+        nullable: true
+        description: Reply settings for the post.
+        expr:
+          kind: path
+          path: [reply_settings]
+      - name: source
+        type: Utf8
+        nullable: true
+        description: Source client, when returned by X.
+        expr:
+          kind: path
+          path: [source]
+      - name: in_reply_to_user_id
+        type: Utf8
+        nullable: true
+        description: User ID this post replies to, if any.
+        expr:
+          kind: path
+          path: [in_reply_to_user_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public engagement metrics.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: referenced_tweets
+        type: Json
+        nullable: true
+        description: Referenced posts such as replies, reposts, or quotes.
+        expr:
+          kind: path
+          path: [referenced_tweets]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed entities such as mentions, hashtags, and URLs.
+        expr:
+          kind: path
+          path: [entities]
+      - name: attachments
+        type: Json
+        nullable: true
+        description: Attachment identifiers such as media or polls.
+        expr:
+          kind: path
+          path: [attachments]
+      - name: context_annotations
+        type: Json
+        nullable: true
+        description: X context annotations.
+        expr:
+          kind: path
+          path: [context_annotations]
+      - name: edit_history_tweet_ids
+        type: Json
+        nullable: true
+        description: Post edit history IDs.
+        expr:
+          kind: path
+          path: [edit_history_tweet_ids]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+
+  - name: user_mentions
+    description: >-
+      Recent posts mentioning a single X/Twitter user. Requires user_id;
+      discover user IDs with users_by_username or users_by_id.
+    fetch_limit_default: 100
+    filters:
+      - name: user_id
+        required: true
+      - name: start_time
+      - name: end_time
+      - name: since_id
+      - name: until_id
+    request:
+      method: GET
+      path: /2/users/{{filter.user_id}}/mentions
+      query:
+        - name: start_time
+          from: filter
+          key: start_time
+        - name: end_time
+          from: filter
+          key: end_time
+        - name: since_id
+          from: filter
+          key: since_id
+        - name: until_id
+          from: filter
+          key: until_id
+        - name: tweet.fields
+          from: literal
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 100
+        query_param: max_results
+    columns:
+      - name: user_id
+        type: Utf8
+        nullable: false
+        description: User ID whose mentions were queried.
+        expr:
+          kind: from_filter
+          key: user_id
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X post ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: text
+        type: Utf8
+        nullable: true
+        description: Post text.
+        expr:
+          kind: path
+          path: [text]
+      - name: author_id
+        type: Utf8
+        nullable: true
+        description: Author user ID.
+        expr:
+          kind: path
+          path: [author_id]
+      - name: conversation_id
+        type: Utf8
+        nullable: true
+        description: Conversation root post ID.
+        expr:
+          kind: path
+          path: [conversation_id]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: Post creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: lang
+        type: Utf8
+        nullable: true
+        description: Detected post language.
+        expr:
+          kind: path
+          path: [lang]
+      - name: possibly_sensitive
+        type: Boolean
+        nullable: true
+        description: Whether X marked the post as possibly sensitive.
+        expr:
+          kind: path
+          path: [possibly_sensitive]
+      - name: reply_settings
+        type: Utf8
+        nullable: true
+        description: Reply settings for the post.
+        expr:
+          kind: path
+          path: [reply_settings]
+      - name: source
+        type: Utf8
+        nullable: true
+        description: Source client, when returned by X.
+        expr:
+          kind: path
+          path: [source]
+      - name: in_reply_to_user_id
+        type: Utf8
+        nullable: true
+        description: User ID this post replies to, if any.
+        expr:
+          kind: path
+          path: [in_reply_to_user_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public engagement metrics.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: referenced_tweets
+        type: Json
+        nullable: true
+        description: Referenced posts such as replies, reposts, or quotes.
+        expr:
+          kind: path
+          path: [referenced_tweets]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed entities such as mentions, hashtags, and URLs.
+        expr:
+          kind: path
+          path: [entities]
+      - name: attachments
+        type: Json
+        nullable: true
+        description: Attachment identifiers such as media or polls.
+        expr:
+          kind: path
+          path: [attachments]
+      - name: context_annotations
+        type: Json
+        nullable: true
+        description: X context annotations.
+        expr:
+          kind: path
+          path: [context_annotations]
+      - name: edit_history_tweet_ids
+        type: Json
+        nullable: true
+        description: Post edit history IDs.
+        expr:
+          kind: path
+          path: [edit_history_tweet_ids]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+
+  - name: followers
+    description: >-
+      User profiles that follow a specific X/Twitter user. Requires user_id and
+      can be high-cardinality for popular accounts.
+    fetch_limit_default: 100
+    filters:
+      - name: user_id
+        required: true
+    request:
+      method: GET
+      path: /2/users/{{filter.user_id}}/followers
+      query:
+        - name: user.fields
+          from: literal
+          value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 1000
+        query_param: max_results
+    columns:
+      - name: source_user_id
+        type: Utf8
+        nullable: false
+        description: User ID whose followers were queried.
+        expr:
+          kind: from_filter
+          key: user_id
+      - name: id
+        type: Utf8
+        nullable: false
+        description: Follower user ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: name
+        type: Utf8
+        nullable: true
+        description: Display name.
+        expr:
+          kind: path
+          path: [name]
+      - name: username
+        type: Utf8
+        nullable: true
+        description: X username without the at-sign.
+        expr:
+          kind: path
+          path: [username]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: User creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: description
+        type: Utf8
+        nullable: true
+        description: User profile description.
+        expr:
+          kind: path
+          path: [description]
+      - name: location
+        type: Utf8
+        nullable: true
+        description: User-provided profile location.
+        expr:
+          kind: path
+          path: [location]
+      - name: url
+        type: Utf8
+        nullable: true
+        description: User-provided profile URL.
+        expr:
+          kind: path
+          path: [url]
+      - name: protected
+        type: Boolean
+        nullable: true
+        description: Whether the user's posts are protected.
+        expr:
+          kind: path
+          path: [protected]
+      - name: verified
+        type: Boolean
+        nullable: true
+        description: Whether the user is verified.
+        expr:
+          kind: path
+          path: [verified]
+      - name: verified_type
+        type: Utf8
+        nullable: true
+        description: Verification type, when returned by X.
+        expr:
+          kind: path
+          path: [verified_type]
+      - name: profile_image_url
+        type: Utf8
+        nullable: true
+        description: Profile image URL.
+        expr:
+          kind: path
+          path: [profile_image_url]
+      - name: pinned_tweet_id
+        type: Utf8
+        nullable: true
+        description: Pinned post ID, if configured.
+        expr:
+          kind: path
+          path: [pinned_tweet_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public user metrics such as followers and following counts.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed profile entities such as URL metadata.
+        expr:
+          kind: path
+          path: [entities]
+      - name: affiliation
+        type: Json
+        nullable: true
+        description: Affiliation metadata, when returned by X.
+        expr:
+          kind: path
+          path: [affiliation]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+
+  - name: following
+    description: >-
+      User profiles followed by a specific X/Twitter user. Requires user_id and
+      can be high-cardinality for popular accounts.
+    fetch_limit_default: 100
+    filters:
+      - name: user_id
+        required: true
+    request:
+      method: GET
+      path: /2/users/{{filter.user_id}}/following
+      query:
+        - name: user.fields
+          from: literal
+          value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 1000
+        query_param: max_results
+    columns:
+      - name: source_user_id
+        type: Utf8
+        nullable: false
+        description: User ID whose following list was queried.
+        expr:
+          kind: from_filter
+          key: user_id
+      - name: id
+        type: Utf8
+        nullable: false
+        description: Followed user ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: name
+        type: Utf8
+        nullable: true
+        description: Display name.
+        expr:
+          kind: path
+          path: [name]
+      - name: username
+        type: Utf8
+        nullable: true
+        description: X username without the at-sign.
+        expr:
+          kind: path
+          path: [username]
+      - name: created_at
+        type: Utf8
+        nullable: true
+        description: User creation time as returned by X.
+        expr:
+          kind: path
+          path: [created_at]
+      - name: description
+        type: Utf8
+        nullable: true
+        description: User profile description.
+        expr:
+          kind: path
+          path: [description]
+      - name: location
+        type: Utf8
+        nullable: true
+        description: User-provided profile location.
+        expr:
+          kind: path
+          path: [location]
+      - name: url
+        type: Utf8
+        nullable: true
+        description: User-provided profile URL.
+        expr:
+          kind: path
+          path: [url]
+      - name: protected
+        type: Boolean
+        nullable: true
+        description: Whether the user's posts are protected.
+        expr:
+          kind: path
+          path: [protected]
+      - name: verified
+        type: Boolean
+        nullable: true
+        description: Whether the user is verified.
+        expr:
+          kind: path
+          path: [verified]
+      - name: verified_type
+        type: Utf8
+        nullable: true
+        description: Verification type, when returned by X.
+        expr:
+          kind: path
+          path: [verified_type]
+      - name: profile_image_url
+        type: Utf8
+        nullable: true
+        description: Profile image URL.
+        expr:
+          kind: path
+          path: [profile_image_url]
+      - name: pinned_tweet_id
+        type: Utf8
+        nullable: true
+        description: Pinned post ID, if configured.
+        expr:
+          kind: path
+          path: [pinned_tweet_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public user metrics such as followers and following counts.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed profile entities such as URL metadata.
+        expr:
+          kind: path
+          path: [entities]
+      - name: affiliation
+        type: Json
+        nullable: true
+        description: Affiliation metadata, when returned by X.
+        expr:
+          kind: path
+          path: [affiliation]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
