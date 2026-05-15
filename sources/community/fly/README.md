@@ -36,6 +36,10 @@ coral source add --file sources/community/fly/manifest.yaml
 coral source test fly
 ```
 
+> **Note:** The built-in test query uses `fly.apps`, which requires an org or
+> read-only token. If you are using an app-scoped deploy token, skip this step
+> and verify directly with a machines or volumes query against your app.
+
 ## Tables
 
 ### `fly.apps`
@@ -79,7 +83,7 @@ Lists Fly Machines for a specific app.
 | `include_deleted` | Utf8 | Echoed filter value (virtual) |
 
 **Required filter:** `app_name`
-**Optional filters:** `region`, `include_deleted`
+**Optional filters:** `state`, `region`, `include_deleted`
 
 ### `fly.volumes`
 
@@ -148,6 +152,12 @@ coral sql "SELECT * FROM coral.columns WHERE schema_name = 'fly'"
 coral sql "SELECT name, machine_count FROM fly.apps WHERE org_slug = 'personal' LIMIT 5"
 ```
 
+> **Note:** `coral source test fly` and the `fly.apps` query above require an
+> org or read-only token. With a deploy token, verify using a machines or
+> volumes query instead (e.g.
+> `coral sql "SELECT id, state FROM fly.machines WHERE app_name = 'my-app' LIMIT 1"`).
+
+
 ## Limitations
 
 - **Read-only.** This source does not create, update, start, stop, or delete
@@ -155,8 +165,9 @@ coral sql "SELECT name, machine_count FROM fly.apps WHERE org_slug = 'personal' 
 - **No pagination.** The Fly.io Machines API returns all items in a single
   response. This works well for typical accounts (tens to low hundreds of
   apps/machines), but very large organizations may see larger response payloads.
-- **Token via CLI only.** Fly.io API tokens are created via `flyctl`, not a web
-  UI. Users need the Fly.io CLI installed.
+- **Token creation.** Tokens are typically created and managed via the `flyctl`
+  CLI (`fly tokens create readonly`, `fly tokens create deploy`). Org-scoped
+  tokens can also be created from the Fly.io dashboard.
 - **Machines and volumes are per-app.** You must provide an `app_name` filter
   obtained from the `apps` table.
 

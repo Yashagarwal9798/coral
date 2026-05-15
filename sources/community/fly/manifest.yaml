@@ -8,10 +8,11 @@ inputs:
   FLY_API_TOKEN:
     kind: secret
     hint: >
-      Fly.io API token. For read-only access create a readonly org token with
-      `fly tokens create readonly -o <org>`. For app-scoped access use
-      `fly tokens create deploy -a <app-name>` (sufficient for machines
-      and volumes but not for listing apps).
+      Fly.io API token. Create a read-only org token with
+      `fly tokens create readonly -o <org>`, or an app-scoped deploy token
+      with `fly tokens create deploy -a <app-name>` (sufficient for machines
+      and volumes but not for listing apps). Org-scoped tokens can also be
+      created from the Fly.io dashboard under Tokens.
       See https://fly.io/docs/machines/api/working-with-machines-api/
 
 base_url: https://api.machines.dev/v1
@@ -108,16 +109,20 @@ tables:
   - name: machines
     description: |
       List Fly Machines for an app. Requires `app_name` filter. Discover
-      app names from the `apps` table. Supports optional `region` filter.
+      app names from the `apps` table. Supports optional `state` and `region` filters.
     filters:
       - name: app_name
         required: true
+      - name: state
       - name: region
       - name: include_deleted
     request:
       method: GET
       path: /apps/{{filter.app_name}}/machines
       query:
+        - name: state
+          from: filter
+          key: state
         - name: region
           from: filter
           key: region
