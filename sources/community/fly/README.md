@@ -50,6 +50,7 @@ Lists Fly Apps in an organization.
 |---|---|---|
 | `id` | Utf8 | App ID |
 | `name` | Utf8 | App name (use as `app_name` filter for other tables) |
+| `status` | Utf8 | App lifecycle status (e.g. deployed, suspended, pending) |
 | `machine_count` | Int64 | Number of machines |
 | `volume_count` | Int64 | Number of volumes |
 | `network` | Utf8 | Network name |
@@ -66,6 +67,7 @@ Lists Fly Machines for a specific app.
 | `id` | Utf8 | Machine ID |
 | `name` | Utf8 | Machine name |
 | `state` | Utf8 | Current state (started, stopped, suspended, destroyed) |
+| `host_status` | Utf8 | Host-level health (ok, unknown, unreachable) |
 | `region` | Utf8 | Region code |
 | `instance_id` | Utf8 | Current instance version |
 | `private_ip` | Utf8 | 6PN IPv6 address |
@@ -79,8 +81,6 @@ Lists Fly Machines for a specific app.
 | `created_at` | Timestamp | Creation time |
 | `updated_at` | Timestamp | Last update time |
 | `app_name` | Utf8 | Echoed filter value |
-| `region_filter` | Utf8 | Echoed filter value (virtual) |
-| `include_deleted` | Utf8 | Echoed filter value (virtual) |
 
 **Required filter:** `app_name`
 **Optional filters:** `state`, `region`, `include_deleted`
@@ -94,7 +94,11 @@ Lists Fly Volumes (persistent storage) for a specific app.
 | `id` | Utf8 | Volume ID |
 | `name` | Utf8 | Volume name |
 | `state` | Utf8 | Volume state |
+| `host_status` | Utf8 | Host-level health (ok, unknown, unreachable) |
+| `type` | Utf8 | Volume type (local or cache) |
 | `size_gb` | Int64 | Size in GB |
+| `bytes_total` | Int64 | Total size in bytes |
+| `bytes_used` | Int64 | Used space in bytes |
 | `region` | Utf8 | Region code |
 | `zone` | Utf8 | Availability zone |
 | `encrypted` | Boolean | Encryption status |

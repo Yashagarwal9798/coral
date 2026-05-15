@@ -70,6 +70,14 @@ tables:
           kind: path
           path:
             - name
+      - name: status
+        type: Utf8
+        nullable: true
+        description: App lifecycle status (e.g. deployed, suspended, pending).
+        expr:
+          kind: path
+          path:
+            - status
       - name: machine_count
         type: Int64
         nullable: true
@@ -158,6 +166,14 @@ tables:
           kind: path
           path:
             - state
+      - name: host_status
+        type: Utf8
+        nullable: true
+        description: Host-level health (ok, unknown, unreachable).
+        expr:
+          kind: path
+          path:
+            - host_status
       - name: region
         type: Utf8
         nullable: true
@@ -271,22 +287,6 @@ tables:
         expr:
           kind: from_filter
           key: app_name
-      - name: region_filter
-        type: Utf8
-        nullable: true
-        virtual: true
-        description: Echoes the `region` filter when provided.
-        expr:
-          kind: from_filter
-          key: region
-      - name: include_deleted
-        type: Utf8
-        nullable: true
-        virtual: true
-        description: Echoes the `include_deleted` filter when provided.
-        expr:
-          kind: from_filter
-          key: include_deleted
 
   # ------------------------------------------------------------------
   # fly.volumes — list volumes for an app
@@ -331,6 +331,22 @@ tables:
           kind: path
           path:
             - state
+      - name: host_status
+        type: Utf8
+        nullable: true
+        description: Host-level health (ok, unknown, unreachable).
+        expr:
+          kind: path
+          path:
+            - host_status
+      - name: type
+        type: Utf8
+        nullable: true
+        description: Volume type (local for persistent, cache for ephemeral).
+        expr:
+          kind: path
+          path:
+            - type
       - name: size_gb
         type: Int64
         nullable: true
@@ -339,6 +355,22 @@ tables:
           kind: path
           path:
             - size_gb
+      - name: bytes_total
+        type: Int64
+        nullable: true
+        description: Total volume size in bytes.
+        expr:
+          kind: path
+          path:
+            - bytes_total
+      - name: bytes_used
+        type: Int64
+        nullable: true
+        description: Used space in bytes.
+        expr:
+          kind: path
+          path:
+            - bytes_used
       - name: region
         type: Utf8
         nullable: true
