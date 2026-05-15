@@ -169,7 +169,6 @@ tables:
     description: |
       List all versions of a specific crate. Requires `crate_name` filter.
       Use `sort` to order by `date` or `semver` (default: `semver`).
-    fetch_limit_default: 100
     filters:
       - name: crate_name
         required: true
@@ -185,14 +184,7 @@ tables:
       rows_path:
         - versions
     pagination:
-      mode: page
-      page_param: page
-      page_start: 1
-      max_pages: 100
-      page_size:
-        default: 50
-        max: 100
-        query_param: per_page
+      mode: none
     columns:
       - name: id
         type: Int64

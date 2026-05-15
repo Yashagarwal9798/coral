@@ -44,8 +44,10 @@ large scans narrow with filters such as `q`, `category`, `keyword`, or
 
 ## Pagination and filters
 
-The `crates`, `crate_versions`, `categories`, and `keywords` tables use
-crates.io page pagination with `page` and `per_page` request parameters.
+The `crates`, `categories`, and `keywords` tables use crates.io page
+pagination with `page` and `per_page` request parameters.
+The `crate_versions`, `crate_dependencies`, and `crate_owners` tables return
+all rows in a single response (no pagination).
 
 The `crates_io.crates` table supports `include_yanked = 'yes'` when you need
 to include yanked crates in search/list results. The `categories` and
