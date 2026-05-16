@@ -838,7 +838,7 @@ tables:
         max: 1000
         query_param: max_results
     columns:
-      - name: source_user_id
+      - name: user_id
         type: Utf8
         nullable: false
         description: User ID whose followers were queried.
@@ -984,7 +984,7 @@ tables:
         max: 1000
         query_param: max_results
     columns:
-      - name: source_user_id
+      - name: user_id
         type: Utf8
         nullable: false
         description: User ID whose following list was queried.
