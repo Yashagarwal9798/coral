@@ -8,21 +8,18 @@ description: >-
 inputs:
   SHOPIFY_SHOP_DOMAIN:
     kind: variable
-    required: true
     hint: |
       Shopify shop domain for the Admin GraphQL API, for example
       `example.myshopify.com`. Do not include `https://` or a trailing slash.
   SHOPIFY_API_VERSION:
     kind: variable
     default: "2026-04"
-    required: false
     hint: |
       Shopify Admin GraphQL API version. Defaults to `2026-04`, the latest
       stable version checked for this source. Override only when you have
       validated the source against another supported Admin API version.
   SHOPIFY_ADMIN_ACCESS_TOKEN:
     kind: secret
-    required: true
     hint: |
       Shopify Admin API access token from a custom or public app. The token is
       sent as `X-Shopify-Access-Token`. Grant only the read scopes needed for
@@ -167,19 +164,25 @@ tables:
           kind: path
           path: [taxShipping]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Shop creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Shop last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
       - name: url
         type: Utf8
         nullable: true
@@ -253,7 +256,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -384,30 +386,46 @@ tables:
           kind: path
           path: [hasOnlyDefaultVariant]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Product creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Product last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
       - name: published_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Product publication timestamp, when present.
         expr:
-          kind: path
-          path: [publishedAt]
-      - name: min_variant_price_amount
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [publishedAt]
+      - name: min_variant_price_amount_decimal
         type: Utf8
         nullable: true
-        description: Minimum variant price amount in the product price range.
+        description: Minimum variant price amount as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [priceRangeV2, minVariantPrice, amount]
+      - name: min_variant_price_amount
+        type: Float64
+        nullable: true
+        description: Minimum variant price amount as Float64 for arithmetic.
         expr:
           kind: path
           path: [priceRangeV2, minVariantPrice, amount]
@@ -418,10 +436,17 @@ tables:
         expr:
           kind: path
           path: [priceRangeV2, minVariantPrice, currencyCode]
-      - name: max_variant_price_amount
+      - name: max_variant_price_amount_decimal
         type: Utf8
         nullable: true
-        description: Maximum variant price amount in the product price range.
+        description: Maximum variant price amount as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [priceRangeV2, maxVariantPrice, amount]
+      - name: max_variant_price_amount
+        type: Float64
+        nullable: true
+        description: Maximum variant price amount as Float64 for arithmetic.
         expr:
           kind: path
           path: [priceRangeV2, maxVariantPrice, amount]
@@ -442,7 +467,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -570,17 +594,31 @@ tables:
         expr:
           kind: path
           path: [barcode]
-      - name: price
+      - name: price_decimal
         type: Utf8
         nullable: true
-        description: Variant price in the shop currency.
+        description: Variant price as Shopify's decimal string.
         expr:
           kind: path
           path: [price]
-      - name: compare_at_price
+      - name: price
+        type: Float64
+        nullable: true
+        description: Variant price as Float64 for arithmetic.
+        expr:
+          kind: path
+          path: [price]
+      - name: compare_at_price_decimal
         type: Utf8
         nullable: true
-        description: Variant compare-at price, when present.
+        description: Variant compare-at price as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [compareAtPrice]
+      - name: compare_at_price
+        type: Float64
+        nullable: true
+        description: Variant compare-at price as Float64 for arithmetic.
         expr:
           kind: path
           path: [compareAtPrice]
@@ -641,19 +679,25 @@ tables:
           kind: path
           path: [inventoryItem, requiresShipping]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Variant creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Variant last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
 
   - name: collections
     description: Product collections in the Shopify catalog.
@@ -664,7 +708,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -783,12 +826,15 @@ tables:
           kind: path
           path: [templateSuffix]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Collection last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
       - name: products_count
         type: Int64
         nullable: true
@@ -836,7 +882,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -935,33 +980,45 @@ tables:
           kind: path
           path: [name]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Order creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Order last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
       - name: processed_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Order processed timestamp from Shopify.
         expr:
-          kind: path
-          path: [processedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [processedAt]
       - name: cancelled_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Order cancellation timestamp, when cancelled.
         expr:
-          kind: path
-          path: [cancelledAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [cancelledAt]
       - name: display_financial_status
         type: Utf8
         nullable: true
@@ -983,10 +1040,17 @@ tables:
         expr:
           kind: path
           path: [currencyCode]
-      - name: current_total_price_amount
+      - name: current_total_price_amount_decimal
         type: Utf8
         nullable: true
-        description: Current total order price amount in the shop currency.
+        description: Current total order price amount as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [currentTotalPriceSet, shopMoney, amount]
+      - name: current_total_price_amount
+        type: Float64
+        nullable: true
+        description: Current total order price amount as Float64 for arithmetic.
         expr:
           kind: path
           path: [currentTotalPriceSet, shopMoney, amount]
@@ -997,10 +1061,17 @@ tables:
         expr:
           kind: path
           path: [currentTotalPriceSet, shopMoney, currencyCode]
-      - name: current_subtotal_price_amount
+      - name: current_subtotal_price_amount_decimal
         type: Utf8
         nullable: true
-        description: Current subtotal price amount in the shop currency.
+        description: Current subtotal price amount as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [currentSubtotalPriceSet, shopMoney, amount]
+      - name: current_subtotal_price_amount
+        type: Float64
+        nullable: true
+        description: Current subtotal price amount as Float64 for arithmetic.
         expr:
           kind: path
           path: [currentSubtotalPriceSet, shopMoney, amount]
@@ -1011,10 +1082,17 @@ tables:
         expr:
           kind: path
           path: [currentSubtotalPriceSet, shopMoney, currencyCode]
-      - name: current_total_tax_amount
+      - name: current_total_tax_amount_decimal
         type: Utf8
         nullable: true
-        description: Current total tax amount in the shop currency.
+        description: Current total tax amount as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [currentTotalTaxSet, shopMoney, amount]
+      - name: current_total_tax_amount
+        type: Float64
+        nullable: true
+        description: Current total tax amount as Float64 for arithmetic.
         expr:
           kind: path
           path: [currentTotalTaxSet, shopMoney, amount]
@@ -1092,7 +1170,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -1230,10 +1307,17 @@ tables:
         expr:
           kind: path
           path: [numberOfOrders]
-      - name: amount_spent
+      - name: amount_spent_decimal
         type: Utf8
         nullable: true
-        description: Lifetime amount spent by the customer.
+        description: Lifetime amount spent as Shopify's decimal string.
+        expr:
+          kind: path
+          path: [amountSpent, amount]
+      - name: amount_spent
+        type: Float64
+        nullable: true
+        description: Lifetime amount spent as Float64 for arithmetic.
         expr:
           kind: path
           path: [amountSpent, amount]
@@ -1266,19 +1350,25 @@ tables:
           kind: path
           path: [tags]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Customer creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Customer last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
 
   - name: locations
     description: Shopify inventory locations where products can be stocked or fulfilled.
@@ -1290,12 +1380,9 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
       - name: include_inactive
-        required: false
       - name: include_legacy
-        required: false
     request:
       method: POST
       path: /graphql.json
@@ -1516,19 +1603,25 @@ tables:
           kind: path
           path: [fulfillmentService, serviceName]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Location creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Location last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]
 
   - name: inventory_items
     description: Shopify inventory item metadata connected to product variants.
@@ -1540,7 +1633,6 @@ tables:
     fetch_limit_default: 100
     filters:
       - name: query
-        required: false
         mode: search
     request:
       method: POST
@@ -1678,16 +1770,22 @@ tables:
           kind: path
           path: [locationsCount, precision]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Inventory item creation timestamp from Shopify.
         expr:
-          kind: path
-          path: [createdAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [createdAt]
       - name: updated_at
-        type: Utf8
+        type: Timestamp
         nullable: true
         description: Inventory item last updated timestamp from Shopify.
         expr:
-          kind: path
-          path: [updatedAt]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [updatedAt]

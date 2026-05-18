@@ -70,6 +70,10 @@ The `query` filters use Shopify Admin API search syntax for the corresponding
 GraphQL connection. Examples include `status:active`, `sku:ABC-123`,
 `updated_at:>2026-01-01`, and `financial_status:paid`.
 
+Money amount columns expose both forms where arithmetic is common: the natural
+amount column is `Float64` for aggregation, and the matching `*_decimal` column
+keeps Shopify's exact decimal string.
+
 ## Example Queries
 
 ```sql
@@ -102,6 +106,11 @@ SELECT id, name, created_at, display_financial_status,
 FROM shopify.orders
 WHERE query = 'financial_status:paid fulfillment_status:unfulfilled'
 LIMIT 25;
+
+-- Total paid unfulfilled order value
+SELECT SUM(current_total_price_amount) AS total_unfulfilled_value
+FROM shopify.orders
+WHERE query = 'financial_status:paid fulfillment_status:unfulfilled';
 
 -- Highest-spend customers returned by a targeted Shopify search
 SELECT id, display_name, default_email, number_of_orders, amount_spent
@@ -139,11 +148,22 @@ coral sql "SELECT id, title, status FROM shopify.products LIMIT 10"
 
 - This source uses Shopify Admin GraphQL, not REST Admin API. Shopify marks REST
   Admin API as legacy and requires new public apps to use GraphQL Admin API.
+- The default `SHOPIFY_API_VERSION` should be reviewed when Shopify API
+  support windows move. Shopify releases stable API versions quarterly and
+  supports each stable version for at least 12 months. Before bumping the
+  default, check Shopify's API versioning release schedule:
+  https://shopify.dev/docs/api/usage/versioning#release-schedule. Version
+  bumps can require GraphQL query updates for renamed, deprecated, or removed
+  fields and enum values.
 - GraphQL connections are paginated with `first`, `after`, and
   `pageInfo.endCursor`. Coral requests up to 100 rows per page by default.
 - Shopify GraphQL IDs are exposed as `Utf8` global IDs such as
   `gid://shopify/Product/...`.
-- Date/time values are exposed as `Utf8` in v1.
+- Shopify money amounts are returned by the API as decimal strings. This source
+  keeps those exact values in `*_decimal` columns and exposes `Float64` amount
+  columns for arithmetic.
+- Shopify `DateTime` values are exposed as `Timestamp` columns for date-range
+  filtering and ordering.
 - Nested or repeatable values such as tags, selected options, and smart
   collection rule sets are exposed as `Json`.
 - Order and customer data can include protected customer data. Shopify may
