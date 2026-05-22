@@ -34,6 +34,18 @@ X_BEARER_TOKEN="..." coral source add x
 
 ## Tables
 
+X API tiers gate endpoints differently. Users on the Free tier will receive
+endpoint-not-allowed errors on `recent_search`. See the
+[X API access levels](https://developer.x.com/en/docs/x-api/getting-started/about-x-api)
+for current details.
+
+| Endpoint | Free | Basic | Pro | Enterprise |
+|----------|------|-------|-----|------------|
+| `users_by_id` / `users_by_username` | ✓ | ✓ | ✓ | ✓ |
+| `recent_search` | ✗ | ✓ | ✓ | ✓ |
+| `user_posts` / `user_mentions` | very low limit | ✓ | ✓ | ✓ |
+| `followers` / `following` | very low limit | ✓ | ✓ | ✓ |
+
 ### `users_by_username`
 
 Fetch a user profile by username. Use this first when you have a handle and
@@ -61,12 +73,21 @@ WHERE id = '2244994945';
 
 ### `recent_search`
 
-Search recent public posts using X API query syntax.
+Search recent public posts using X API query syntax. Only returns posts from
+the last 7 days. For older posts, use the X full-archive search
+(`/2/tweets/search/all`) which requires a higher API tier.
 
 **Requires:** `query`
 
 Optional filters: `start_time`, `end_time`, `since_id`, `until_id`,
 `sort_order`.
+
+Common query operators: `from:user` (author), `to:user` (replied to),
+`@user` (mentioned), `lang:en` (language), `is:reply` / `is:retweet` (type),
+`has:media` / `has:links` (content), `url:example.com` (URL filter),
+`-keyword` (negation). See the
+[X query building guide](https://developer.x.com/en/docs/x-api/tweets/search/integrate/build-a-query/standard-operators)
+for the full operator list.
 
 ```sql
 SELECT id, author_id, text, created_at, public_metrics
@@ -221,12 +242,14 @@ LIMIT 100;
 - The source is read-only. Posting, deleting, liking, reposting, following,
   unfollowing, bookmarking, list mutation, direct messages, webhooks, and
   streaming are out of scope.
-- `created_at` fields are exposed as `Utf8` strings in v1. X docs show
-  timestamp strings, and live validation should happen before converting these
-  columns to Coral `Timestamp`.
+- `created_at` fields are exposed as `Timestamp` columns parsed from ISO 8601.
+  This enables natural time-range predicates such as
+  `WHERE created_at > NOW() - INTERVAL '24 hours'`.
 - Nested fields such as `public_metrics`, `entities`, `attachments`,
-  `referenced_tweets`, `context_annotations`, `affiliation`, and `withheld` are
-  exposed as `Json`.
+  `referenced_tweets`, `context_annotations`, `note_tweet`, `affiliation`, and
+  `withheld` are exposed as `Json`.
+- Long-form posts (over 280 characters) are supported. The `note_tweet` Json
+  column on post tables contains the full text when `text` is truncated.
 - Popular accounts can have very large follower/following lists. Use `LIMIT`
   and narrow workflows to avoid rate limits.
 - Public X data can still contain personal or sensitive information. Follow X

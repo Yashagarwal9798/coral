@@ -45,6 +45,7 @@ tables:
           value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
     response:
       rows_path: [data]
+      row_strategy: direct
     pagination:
       mode: none
     columns:
@@ -70,12 +71,15 @@ tables:
           kind: path
           path: [username]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: User creation time as returned by X.
+        description: User creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: description
         type: Utf8
         nullable: true
@@ -177,6 +181,7 @@ tables:
           value: affiliation,created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld
     response:
       rows_path: [data]
+      row_strategy: direct
     pagination:
       mode: none
     columns:
@@ -202,12 +207,15 @@ tables:
           kind: path
           path: [username]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: User creation time as returned by X.
+        description: User creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: description
         type: Utf8
         nullable: true
@@ -297,7 +305,9 @@ tables:
     description: >-
       Search recent public X/Twitter posts matching an X API query. Requires a
       query filter and is useful for brand, incident, launch, and topic
-      monitoring.
+      monitoring. Only returns posts from the last 7 days. For older posts, use
+      the X full-archive search (/2/tweets/search/all) which requires a higher
+      API tier.
     fetch_limit_default: 100
     filters:
       - name: query
@@ -331,7 +341,7 @@ tables:
           key: sort_order
         - name: tweet.fields
           from: literal
-          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,note_tweet,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
     response:
       rows_path: [data]
     pagination:
@@ -372,12 +382,15 @@ tables:
           kind: path
           path: [conversation_id]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: Post creation time as returned by X.
+        description: Post creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: lang
         type: Utf8
         nullable: true
@@ -462,6 +475,13 @@ tables:
         expr:
           kind: path
           path: [withheld]
+      - name: note_tweet
+        type: Json
+        nullable: true
+        description: Long-form post content for posts exceeding 280 characters.
+        expr:
+          kind: path
+          path: [note_tweet]
       - name: query
         type: Utf8
         nullable: false
@@ -504,7 +524,7 @@ tables:
           key: exclude
         - name: tweet.fields
           from: literal
-          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,note_tweet,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
     response:
       rows_path: [data]
     pagination:
@@ -552,12 +572,15 @@ tables:
           kind: path
           path: [conversation_id]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: Post creation time as returned by X.
+        description: Post creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: lang
         type: Utf8
         nullable: true
@@ -642,6 +665,13 @@ tables:
         expr:
           kind: path
           path: [withheld]
+      - name: note_tweet
+        type: Json
+        nullable: true
+        description: Long-form post content for posts exceeding 280 characters.
+        expr:
+          kind: path
+          path: [note_tweet]
 
   - name: user_mentions
     description: >-
@@ -673,7 +703,7 @@ tables:
           key: until_id
         - name: tweet.fields
           from: literal
-          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,note_tweet,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
     response:
       rows_path: [data]
     pagination:
@@ -721,12 +751,15 @@ tables:
           kind: path
           path: [conversation_id]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: Post creation time as returned by X.
+        description: Post creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: lang
         type: Utf8
         nullable: true
@@ -811,6 +844,13 @@ tables:
         expr:
           kind: path
           path: [withheld]
+      - name: note_tweet
+        type: Json
+        nullable: true
+        description: Long-form post content for posts exceeding 280 characters.
+        expr:
+          kind: path
+          path: [note_tweet]
 
   - name: followers
     description: >-
@@ -867,12 +907,15 @@ tables:
           kind: path
           path: [username]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: User creation time as returned by X.
+        description: User creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: description
         type: Utf8
         nullable: true
@@ -1013,12 +1056,15 @@ tables:
           kind: path
           path: [username]
       - name: created_at
-        type: Utf8
+        type: Timestamp
         nullable: true
-        description: User creation time as returned by X.
+        description: User creation time.
         expr:
-          kind: path
-          path: [created_at]
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
       - name: description
         type: Utf8
         nullable: true
