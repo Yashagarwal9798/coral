@@ -26,6 +26,213 @@ auth:
 test_queries:
   - SELECT id, name, username FROM x.users_by_username WHERE username = 'XDevelopers' LIMIT 1
   - SELECT id, name, username FROM x.users_by_id WHERE id = '2244994945' LIMIT 1
+  - SELECT id, text FROM x.recent_search(query => 'from:XDevelopers') LIMIT 5
+
+functions:
+  - name: recent_search
+    kind: search
+    description: >-
+      Search recent public X/Twitter posts matching an X API query. Useful for
+      brand, incident, launch, and topic monitoring. Only returns posts from
+      the last 7 days. For older posts, use the X full-archive search
+      (/2/tweets/search/all) which requires a higher API tier.
+    fetch_limit_default: 100
+    search_limits:
+      default_top_k: 10
+      max_top_k: 100
+      max_calls_per_query: 1
+    args:
+      - name: query
+        required: true
+        bind:
+          arg: query
+      - name: start_time
+        bind:
+          arg: start_time
+      - name: end_time
+        bind:
+          arg: end_time
+      - name: since_id
+        bind:
+          arg: since_id
+      - name: until_id
+        bind:
+          arg: until_id
+      - name: sort_order
+        bind:
+          arg: sort_order
+    request:
+      method: GET
+      path: /2/tweets/search/recent
+      query:
+        - name: query
+          from: arg
+          key: query
+        - name: start_time
+          from: arg
+          key: start_time
+        - name: end_time
+          from: arg
+          key: end_time
+        - name: since_id
+          from: arg
+          key: since_id
+        - name: until_id
+          from: arg
+          key: until_id
+        - name: sort_order
+          from: arg
+          key: sort_order
+        - name: tweet.fields
+          from: literal
+          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,note_tweet,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
+    response:
+      rows_path: [data]
+    pagination:
+      mode: cursor_query
+      cursor_param: pagination_token
+      response_cursor_path: [meta, next_token]
+      page_size:
+        default: 100
+        max: 100
+        query_param: max_results
+    columns:
+      - name: id
+        type: Utf8
+        nullable: false
+        description: X post ID as a string.
+        expr:
+          kind: path
+          path: [id]
+      - name: text
+        type: Utf8
+        nullable: true
+        description: Post text.
+        expr:
+          kind: path
+          path: [text]
+      - name: author_id
+        type: Utf8
+        nullable: true
+        description: Author user ID.
+        expr:
+          kind: path
+          path: [author_id]
+      - name: conversation_id
+        type: Utf8
+        nullable: true
+        description: Conversation root post ID.
+        expr:
+          kind: path
+          path: [conversation_id]
+      - name: created_at
+        type: Timestamp
+        nullable: true
+        description: Post creation time.
+        expr:
+          kind: format_timestamp
+          input: iso8601
+          expr:
+            kind: path
+            path: [created_at]
+      - name: lang
+        type: Utf8
+        nullable: true
+        description: Detected post language.
+        expr:
+          kind: path
+          path: [lang]
+      - name: possibly_sensitive
+        type: Boolean
+        nullable: true
+        description: Whether X marked the post as possibly sensitive.
+        expr:
+          kind: path
+          path: [possibly_sensitive]
+      - name: reply_settings
+        type: Utf8
+        nullable: true
+        description: Reply settings for the post.
+        expr:
+          kind: path
+          path: [reply_settings]
+      - name: source
+        type: Utf8
+        nullable: true
+        description: Source client, when returned by X.
+        expr:
+          kind: path
+          path: [source]
+      - name: in_reply_to_user_id
+        type: Utf8
+        nullable: true
+        description: User ID this post replies to, if any.
+        expr:
+          kind: path
+          path: [in_reply_to_user_id]
+      - name: public_metrics
+        type: Json
+        nullable: true
+        description: Public engagement metrics.
+        expr:
+          kind: path
+          path: [public_metrics]
+      - name: referenced_tweets
+        type: Json
+        nullable: true
+        description: Referenced posts such as replies, reposts, or quotes.
+        expr:
+          kind: path
+          path: [referenced_tweets]
+      - name: entities
+        type: Json
+        nullable: true
+        description: Parsed entities such as mentions, hashtags, and URLs.
+        expr:
+          kind: path
+          path: [entities]
+      - name: attachments
+        type: Json
+        nullable: true
+        description: Attachment identifiers such as media or polls.
+        expr:
+          kind: path
+          path: [attachments]
+      - name: context_annotations
+        type: Json
+        nullable: true
+        description: X context annotations.
+        expr:
+          kind: path
+          path: [context_annotations]
+      - name: edit_history_tweet_ids
+        type: Json
+        nullable: true
+        description: Post edit history IDs.
+        expr:
+          kind: path
+          path: [edit_history_tweet_ids]
+      - name: withheld
+        type: Json
+        nullable: true
+        description: Withheld content metadata, when present.
+        expr:
+          kind: path
+          path: [withheld]
+      - name: note_tweet
+        type: Json
+        nullable: true
+        description: Long-form post content for posts exceeding 280 characters.
+        expr:
+          kind: path
+          path: [note_tweet]
+      - name: query
+        type: Utf8
+        nullable: false
+        description: Echoes the search query argument.
+        expr:
+          kind: from_arg
+          key: query
 
 tables:
   - name: users_by_id
@@ -300,195 +507,6 @@ tables:
         expr:
           kind: path
           path: [withheld]
-
-  - name: recent_search
-    description: >-
-      Search recent public X/Twitter posts matching an X API query. Requires a
-      query filter and is useful for brand, incident, launch, and topic
-      monitoring. Only returns posts from the last 7 days. For older posts, use
-      the X full-archive search (/2/tweets/search/all) which requires a higher
-      API tier.
-    fetch_limit_default: 100
-    filters:
-      - name: query
-        required: true
-      - name: start_time
-      - name: end_time
-      - name: since_id
-      - name: until_id
-      - name: sort_order
-    request:
-      method: GET
-      path: /2/tweets/search/recent
-      query:
-        - name: query
-          from: filter
-          key: query
-        - name: start_time
-          from: filter
-          key: start_time
-        - name: end_time
-          from: filter
-          key: end_time
-        - name: since_id
-          from: filter
-          key: since_id
-        - name: until_id
-          from: filter
-          key: until_id
-        - name: sort_order
-          from: filter
-          key: sort_order
-        - name: tweet.fields
-          from: literal
-          value: attachments,author_id,context_annotations,conversation_id,created_at,edit_history_tweet_ids,entities,geo,id,in_reply_to_user_id,lang,note_tweet,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld
-    response:
-      rows_path: [data]
-    pagination:
-      mode: cursor_query
-      cursor_param: pagination_token
-      response_cursor_path: [meta, next_token]
-      page_size:
-        default: 100
-        max: 100
-        query_param: max_results
-    columns:
-      - name: id
-        type: Utf8
-        nullable: false
-        description: X post ID as a string.
-        expr:
-          kind: path
-          path: [id]
-      - name: text
-        type: Utf8
-        nullable: true
-        description: Post text.
-        expr:
-          kind: path
-          path: [text]
-      - name: author_id
-        type: Utf8
-        nullable: true
-        description: Author user ID.
-        expr:
-          kind: path
-          path: [author_id]
-      - name: conversation_id
-        type: Utf8
-        nullable: true
-        description: Conversation root post ID.
-        expr:
-          kind: path
-          path: [conversation_id]
-      - name: created_at
-        type: Timestamp
-        nullable: true
-        description: Post creation time.
-        expr:
-          kind: format_timestamp
-          input: iso8601
-          expr:
-            kind: path
-            path: [created_at]
-      - name: lang
-        type: Utf8
-        nullable: true
-        description: Detected post language.
-        expr:
-          kind: path
-          path: [lang]
-      - name: possibly_sensitive
-        type: Boolean
-        nullable: true
-        description: Whether X marked the post as possibly sensitive.
-        expr:
-          kind: path
-          path: [possibly_sensitive]
-      - name: reply_settings
-        type: Utf8
-        nullable: true
-        description: Reply settings for the post.
-        expr:
-          kind: path
-          path: [reply_settings]
-      - name: source
-        type: Utf8
-        nullable: true
-        description: Source client, when returned by X.
-        expr:
-          kind: path
-          path: [source]
-      - name: in_reply_to_user_id
-        type: Utf8
-        nullable: true
-        description: User ID this post replies to, if any.
-        expr:
-          kind: path
-          path: [in_reply_to_user_id]
-      - name: public_metrics
-        type: Json
-        nullable: true
-        description: Public engagement metrics.
-        expr:
-          kind: path
-          path: [public_metrics]
-      - name: referenced_tweets
-        type: Json
-        nullable: true
-        description: Referenced posts such as replies, reposts, or quotes.
-        expr:
-          kind: path
-          path: [referenced_tweets]
-      - name: entities
-        type: Json
-        nullable: true
-        description: Parsed entities such as mentions, hashtags, and URLs.
-        expr:
-          kind: path
-          path: [entities]
-      - name: attachments
-        type: Json
-        nullable: true
-        description: Attachment identifiers such as media or polls.
-        expr:
-          kind: path
-          path: [attachments]
-      - name: context_annotations
-        type: Json
-        nullable: true
-        description: X context annotations.
-        expr:
-          kind: path
-          path: [context_annotations]
-      - name: edit_history_tweet_ids
-        type: Json
-        nullable: true
-        description: Post edit history IDs.
-        expr:
-          kind: path
-          path: [edit_history_tweet_ids]
-      - name: withheld
-        type: Json
-        nullable: true
-        description: Withheld content metadata, when present.
-        expr:
-          kind: path
-          path: [withheld]
-      - name: note_tweet
-        type: Json
-        nullable: true
-        description: Long-form post content for posts exceeding 280 characters.
-        expr:
-          kind: path
-          path: [note_tweet]
-      - name: query
-        type: Utf8
-        nullable: false
-        description: Echoes the search query filter.
-        expr:
-          kind: from_filter
-          key: query
 
   - name: user_posts
     description: >-

@@ -26,25 +26,38 @@ endpoints. For OAuth 2.0 user-context tokens, the minimum scopes are typically:
 X_BEARER_TOKEN="..." coral source add --file sources/community/x/manifest.yaml
 ```
 
-For bundled installs:
+## Functions
 
-```bash
-X_BEARER_TOKEN="..." coral source add x
+### `recent_search`
+
+Search recent public posts using X API query syntax. Only returns posts from
+the last 7 days. For older posts, use the X full-archive search
+(`/2/tweets/search/all`) which requires a higher API tier.
+
+**Required argument:** `query`
+
+Optional arguments: `start_time`, `end_time`, `since_id`, `until_id`,
+`sort_order`.
+
+Common query operators: `from:user` (author), `to:user` (replied to),
+`@user` (mentioned), `lang:en` (language), `is:reply` / `is:retweet` (type),
+`has:media` / `has:links` (content), `url:example.com` (URL filter),
+`-keyword` (negation). See the
+[X query building guide](https://developer.x.com/en/docs/x-api/tweets/search/integrate/build-a-query/standard-operators)
+for the full operator list.
+
+```sql
+SELECT id, author_id, text, created_at, public_metrics
+FROM x.recent_search(query => 'from:XDevelopers')
+LIMIT 25;
 ```
 
 ## Tables
 
-X API tiers gate endpoints differently. Users on the Free tier will receive
-endpoint-not-allowed errors on `recent_search`. See the
-[X API access levels](https://developer.x.com/en/docs/x-api/getting-started/about-x-api)
-for current details.
-
-| Endpoint | Free | Basic | Pro | Enterprise |
-|----------|------|-------|-----|------------|
-| `users_by_id` / `users_by_username` | ✓ | ✓ | ✓ | ✓ |
-| `recent_search` | ✗ | ✓ | ✓ | ✓ |
-| `user_posts` / `user_mentions` | very low limit | ✓ | ✓ | ✓ |
-| `followers` / `following` | very low limit | ✓ | ✓ | ✓ |
+Endpoint availability and rate limits depend on your
+[X API access level](https://developer.x.com/en/docs/x-api/getting-started/about-x-api).
+Some endpoints (e.g. `recent_search`) are not available on the free tier and
+will return endpoint-not-allowed errors.
 
 ### `users_by_username`
 
@@ -69,31 +82,6 @@ Fetch a user profile by numeric user ID.
 SELECT id, name, username, created_at, verified
 FROM x.users_by_id
 WHERE id = '2244994945';
-```
-
-### `recent_search`
-
-Search recent public posts using X API query syntax. Only returns posts from
-the last 7 days. For older posts, use the X full-archive search
-(`/2/tweets/search/all`) which requires a higher API tier.
-
-**Requires:** `query`
-
-Optional filters: `start_time`, `end_time`, `since_id`, `until_id`,
-`sort_order`.
-
-Common query operators: `from:user` (author), `to:user` (replied to),
-`@user` (mentioned), `lang:en` (language), `is:reply` / `is:retweet` (type),
-`has:media` / `has:links` (content), `url:example.com` (URL filter),
-`-keyword` (negation). See the
-[X query building guide](https://developer.x.com/en/docs/x-api/tweets/search/integrate/build-a-query/standard-operators)
-for the full operator list.
-
-```sql
-SELECT id, author_id, text, created_at, public_metrics
-FROM x.recent_search
-WHERE query = 'from:XDevelopers'
-LIMIT 25;
 ```
 
 ### `user_posts`
@@ -200,8 +188,7 @@ WHERE username = 'XDevelopers';
 
 ```sql
 SELECT id, author_id, text, created_at
-FROM x.recent_search
-WHERE query = 'coral source lang:en'
+FROM x.recent_search(query => 'coral source lang:en')
 LIMIT 50;
 ```
 
